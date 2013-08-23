@@ -1,0 +1,14 @@
+{
+  "name": "Upbase",
+  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:Upstatement/upbase.git"
+  },
+  "gitHead": "4df9b46a96bc040bf9a60cd46e225f002bfdab6b",
+  "readme": "upbase 0.1.0\n======\n\nThis is a CSS helper library for the stuff we do pretty often. There are a number of helpers in here, all of which should conform to the following:\n\n- Can be called from a separate stylesheet and not modified in place (ie, themed)\n- Should be tested and compatible with all browsers OR have known and documented compatibility\n- Will think of more guidelines. \n\n### Usage\nThe primary usage for this right now is to deploy it with Yeoman using the Upbase generator found here: https://github.com/Upstatement/generator-upbase/\n\n### If you're not using Yeoman, but still want to install with Bower:\nAdd this line to your `config.rb`:   \n`add_import_path \"./components/upbase/components\"`\n\n\n\n",
+  "readmeFilename": "README.md",
+  "_id": "Upbase@0.0.1",
+  "description": "upbase 0.1.0 ======",
+  "commit": "4df9b46a96bc040bf9a60cd46e225f002bfdab6b"
+}

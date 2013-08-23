@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>A website</title>
+	<link rel="stylesheet" type="text/css" href="css/screen.css"/>
+    <link href="bower_components/grande.js/css/menu.css" rel="stylesheet">
+    <link href="bower_components/grande.js/css/editor.css" rel="stylesheet">
+
+
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+	<script src="js/app.js"></script>
+</head>
+
+<body class="g-body">
+
+	<div class="text-menu hide">
+      <div class="options">
+        <span class="no-overflow">
+          <span class="ui-inputs">
+            <button class="bold">B</button>
+            <button class="italic">i</button>
+            <button class="header1">h1</button>
+            <button class="header2">h2</button>
+            <button class="quote">&rdquo;</button>
+            <button class="url useicons">&#xe001;</button>
+            <input class="url-input" type="text" placeholder="Paste or type a link"/>
+          </span>
+        </span>
+      </div>
+    </div>
+
+	<header class="hdr">
+		<div class="dragbox" draggable="true" ondragstart="dragIt(event);" ondragend="dragStop();"/>
+	</header>
+
+	<div class="main">
+		<div class="cover">
+			<div class="place" contenteditable="false" ondrop="dropIt(event);" ondragover="event.preventDefault();"></div>
+		</div>
+		
+		<div class="two-column">
+			<div class="col-1">
+				<article class="editable-text" contenteditable="true">
+					<h1>Building a bike frame from scratch</h1>
+					<p>I pride myself as a builder of things. In my day job at Upstatement, I build websites. But in my daydreams, I think about building physical objects. I’ve built a few wooden tables and fabricated a couple steel pieces with MIG and TIG welds, but I wanted a project that would push me to learn more about metalworking and the metal shop itself.</p>
+
+					<div class="place" contenteditable="false" ondrop="dropIt(event);" ondragover="event.preventDefault();"></div>
+
+					<p>I pride myself as a builder of things. In my day job at Upstatement, I build websites. But in my daydreams, I think about building physical objects. I’ve built a few wooden tables and fabricated a couple steel pieces with MIG and TIG welds, but I wanted a project that would push me to learn more about metalworking and the metal shop itself.</p>
+
+					<div class="place" contenteditable="false" ondrop="dropIt(event);" ondragover="event.preventDefault();"></div>
+
+					<p>I pride myself as a builder of things. In my day job at Upstatement, I build websites. But in my daydreams, I think about building physical objects. I’ve built a few wooden tables and fabricated a couple steel pieces with MIG and TIG welds, but I wanted a project that would push me to learn more about metalworking and the metal shop itself.</p>
+
+					<div class="place" contenteditable="false" ondrop="dropIt(event);" ondragover="event.preventDefault();"></div>
+
+					<p>I pride myself as a builder of things. In my day job at Upstatement, I build websites. But in my daydreams, I think about building physical objects. I’ve built a few wooden tables and fabricated a couple steel pieces with MIG and TIG welds, but I wanted a project that would push me to learn more about metalworking and the metal shop itself.</p>
+				</article>
+			</div>
+
+			<div class="col-2">
+				<article class="editable-text" contenteditable="true">
+					<div class="place" contenteditable="false" ondrop="dropIt(event);" ondragover="event.preventDefault();"></div>
+					<h3>something else</h3>
+					<small>I pride myself as a builder of things. In my day job at Upstatement, I build websites. But in my daydreams, I think about building physical objects. I’ve built a few wooden tables and fabricated a couple steel pieces with MIG and TIG welds, but I wanted a project that would push me to learn more about metalworking and the metal shop itself.</small>
+				</article>
+			</div>
+		</div>
+	</div>
+</body>
+
+<script src="bower_components/grande.js/js/grande.js"></script>
+<script type="text/javascript">
+  grande.bind();
+</script>
+</html>
