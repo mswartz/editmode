@@ -161,13 +161,17 @@ p { font-size: 20px; line-height: 28px; margin-bottom: 20px; }
 .two-column > .col-1, .two-column > .col.first { margin-right: 5%; width: 77.5%; display: inline; float: left; }
 .two-column > .col-2, .two-column > .col.second, .two-column > .col.last { width: 17.5%; display: inline; float: left; margin-right: 0; }
 
-.space { display: block; min-height: 100px; border: 2px dashed white; background-color: #EEE; margin-bottom: 20px; }
+.space { display: block; min-height: 100px; border: 2px dashed white; background-color: #EEE; margin-bottom: 20px; *zoom: 1; }
+.space:after { content: ""; display: table; clear: both; }
 .space img { width: 100%; }
 .space:hover { background-color: #CCC; }
 
 .place { display: block; opacity: 0; height: 0px; background-color: #EEE; margin-bottom: 20px; -webkit-transition: all 0.2s ease-in; -moz-transition: all 0.2s ease-in; -o-transition: all 0.2s ease-in; transition: all 0.2s ease-in; }
 .place.show { opacity: 1; height: 20px; }
+.place:hover { background-color: #000; }
 
 .hdr { background-color: rgba(0, 0, 0, 0.9); height: 30px; margin-bottom: 30px; position: fixed; }
 
 .dragbox { width: 30px; height: 30px; background-color: #666; }
+
+.img_layout { width: 50px; height: 50px; position: absolute; background-color: #000; }

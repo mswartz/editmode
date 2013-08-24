@@ -27,6 +27,7 @@ p 	{ font-size: 20px;	line-height: 28px; margin-bottom: 20px; }
 	border: 2px dashed #FFF;
 	background-color: #EEE;
 	margin-bottom: 20px;
+	@include pie-clearfix;
 
 	img {
 		width: 100%;
@@ -50,6 +51,10 @@ p 	{ font-size: 20px;	line-height: 28px; margin-bottom: 20px; }
 		opacity: 1;
 		height: 20px;
 	}
+
+	&:hover {
+		background-color: #000;
+	}
 }
 
 .hdr {
@@ -63,5 +68,12 @@ p 	{ font-size: 20px;	line-height: 28px; margin-bottom: 20px; }
 	width: 30px;
 	height: 30px;
 	background-color: #666;
+}
+
+.img_layout {
+	width: 50px;
+	height: 50px;
+	position: absolute;
+	background-color: #000;
 }
 
