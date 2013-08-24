@@ -5,7 +5,6 @@ body {
 	font-size: 14px;
 }
 
-
 h1 	{ font-size: 26px;	margin-bottom: 20px; }
 h2 	{ font-size: 22px; 	margin-bottom: 20px; }
 h3 	{ font-size: 18px;	margin-bottom: 20px; }
@@ -61,6 +60,8 @@ p 	{ font-size: 20px;	line-height: 28px; margin-bottom: 20px; }
 	background-color: rgba(0,0,0,.9);
 	height: 30px;
 	margin-bottom: 30px;
+	left: 10px;
+	top: 10px;
 	position: fixed;
 }
 
@@ -71,7 +72,7 @@ p 	{ font-size: 20px;	line-height: 28px; margin-bottom: 20px; }
 }
 
 .img_layout {
-	width: 50px;
+	width: 100px;
 	height: 50px;
 	position: absolute;
 	background-color: #000;
