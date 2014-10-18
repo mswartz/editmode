@@ -1,32 +1,116 @@
 (function() {
+  /*jshint multistr:true */
+  var EDGE = -999;
+
   var root = this,   // Root object, this is going to be the window for now
       document = this.document, // Safely store a document here for us to use
       editableNodes = document.querySelectorAll(".g-body article"),
-      textMenu = document.querySelectorAll(".g-body .text-menu")[0],
-      optionsNode = document.querySelectorAll(".g-body .text-menu .options")[0],
-      urlInput = document.querySelectorAll(".g-body .text-menu .url-input")[0],
+      editNode = editableNodes[0], // TODO: cross el support for imageUpload
+      isFirefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1,
+      options = {
+        animate: true
+      },
+      textMenu,
+      optionsNode,
+      urlInput,
       previouslySelectedText,
+      imageTooltip,
+      imageInput,
+      imageBound;
 
       grande = {
-        bind: function() {
+        bind: function(bindableNodes, opts) {
+          if (bindableNodes) {
+            editableNodes = bindableNodes;
+          }
+
+          options = opts || options;
+
+          attachToolbarTemplate();
           bindTextSelectionEvents();
           bindTextStylingEvents();
         },
         select: function() {
           triggerTextSelection();
         }
+      },
+
+      tagClassMap = {
+        "b": "bold",
+        "i": "italic",
+        "h1": "header1",
+        "h2": "header2",
+        "a": "url",
+        "blockquote": "quote"
       };
+
+  function attachToolbarTemplate() {
+    var div = document.createElement("div"),
+        toolbarTemplate = "<div class='options'> \
+          <span class='no-overflow'> \
+            <span class='ui-inputs'> \
+              <button class='bold'>B</button> \
+              <button class='italic'>i</button> \
+              <button class='header1'>h1</button> \
+              <button class='header2'>h2</button> \
+              <button class='quote'>&rdquo;</button> \
+              <button class='url useicons'>&#xe001;</button> \
+              <input class='url-input' type='text' placeholder='Paste or type a link'/> \
+            </span> \
+          </span> \
+        </div>",
+        imageTooltipTemplate = document.createElement("div"),
+        toolbarContainer = document.createElement("div");
+
+    toolbarContainer.className = "g-body";
+    document.body.appendChild(toolbarContainer);
+
+    imageTooltipTemplate.innerHTML = "<div class='pos-abs file-label'>Insert image</div> \
+                                        <input class='file-hidden pos-abs' type='file' id='files' name='files[]' accept='image/*' multiple/>";
+    imageTooltipTemplate.className = "image-tooltip hide";
+
+    div.className = "text-menu hide";
+    div.innerHTML = toolbarTemplate;
+
+    if (document.querySelectorAll(".text-menu").length === 0) {
+      toolbarContainer.appendChild(div);
+      toolbarContainer.appendChild(imageTooltipTemplate);
+    }
+
+    imageInput = document.querySelectorAll(".file-label + input")[0];
+    imageTooltip = document.querySelectorAll(".image-tooltip")[0];
+    textMenu = document.querySelectorAll(".text-menu")[0];
+    optionsNode = document.querySelectorAll(".text-menu .options")[0];
+    urlInput = document.querySelectorAll(".text-menu .url-input")[0];
+  }
 
   function bindTextSelectionEvents() {
     var i,
         len,
         node;
 
+    // Trigger on both mousedown and mouseup so that the click on the menu
+    // feels more instantaneously active
     document.onmousedown = triggerTextSelection;
     document.onmouseup = function(event) {
       setTimeout(function() {
         triggerTextSelection(event);
       }, 1);
+    };
+
+    document.onkeydown = preprocessKeyDown;
+
+    document.onkeyup = function(event){
+      var sel = window.getSelection();
+
+      // FF will return sel.anchorNode to be the parentNode when the triggered keyCode is 13
+      if (sel.anchorNode && sel.anchorNode.nodeName !== "ARTICLE") {
+        triggerNodeAnalysis(event);
+
+        if (sel.isCollapsed) {
+          triggerTextParse(event);
+        }
+      }
     };
 
     // Handle window resize events
@@ -35,24 +119,116 @@
     urlInput.onblur = triggerUrlBlur;
     urlInput.onkeydown = triggerUrlSet;
 
+    if (options.allowImages) {
+      imageTooltip.onmousedown = triggerImageUpload;
+      imageInput.onchange = uploadImage;
+      document.onmousemove = triggerOverlayStyling;
+    }
+
     for (i = 0, len = editableNodes.length; i < len; i++) {
       node = editableNodes[i];
+      node.contentEditable = true;
       node.onmousedown = node.onkeyup = node.onmouseup = triggerTextSelection;
     }
   }
 
-  function iterateTextMenuButtons(callback) {
-    var textMenuButtons = document.querySelectorAll(".g-body .text-menu button"),
+  function triggerOverlayStyling(event) {
+    toggleImageTooltip(event, event.target);
+  }
+
+  function triggerImageUpload(event) {
+    // Cache the bound that was originally clicked on before the image upload
+    var childrenNodes = editNode.children,
+        editBounds = editNode.getBoundingClientRect();
+
+    imageBound = getHorizontalBounds(childrenNodes, editBounds, event);
+  }
+
+  function uploadImage(event) {
+    // Only allow uploading of 1 image for now, this is the first file
+    var file = this.files[0],
+        reader = new FileReader(),
+        figEl;
+
+    reader.onload = (function(f) {
+      return function(e) {
+        figEl = document.createElement("figure");
+        figEl.innerHTML = "<img src=\"" + e.target.result + "\"/>";
+        editNode.insertBefore(figEl, imageBound.bottomElement);
+      };
+    }(file));
+
+    reader.readAsDataURL(file);
+  }
+
+  function toggleImageTooltip(event, element) {
+    var childrenNodes = editNode.children,
+        editBounds = editNode.getBoundingClientRect(),
+        bound = getHorizontalBounds(childrenNodes, editBounds, event);
+
+    if (bound) {
+      imageTooltip.style.left = (editBounds.left - 90 ) + "px";
+      imageTooltip.style.top = (bound.top - 17) + "px";
+    } else {
+      imageTooltip.style.left = EDGE + "px";
+      imageTooltip.style.top = EDGE + "px";
+    }
+  }
+
+  function getHorizontalBounds(nodes, target, event) {
+    var bounds = [],
+        bound,
         i,
         len,
-        node;
+        preNode,
+        postNode,
+        bottomBound,
+        topBound,
+        coordY;
+
+    // Compute top and bottom bounds for each child element
+    for (i = 0, len = nodes.length - 1; i < len; i++) {
+      preNode = nodes[i];
+      postNode = nodes[i+1] || null;
+
+      bottomBound = preNode.getBoundingClientRect().bottom - 5;
+      topBound = postNode.getBoundingClientRect().top;
+
+      bounds.push({
+        top: topBound,
+        bottom: bottomBound,
+        topElement: preNode,
+        bottomElement: postNode,
+        index: i+1
+      });
+    }
+
+    coordY = event.pageY - root.scrollY;
+
+    // Find if there is a range to insert the image tooltip between two elements
+    for (i = 0, len = bounds.length; i < len; i++) {
+      bound = bounds[i];
+      if (coordY < bound.top && coordY > bound.bottom) {
+        return bound;
+      }
+    }
+
+    return null;
+  }
+
+  function iterateTextMenuButtons(callback) {
+    var textMenuButtons = document.querySelectorAll(".text-menu button"),
+        i,
+        len,
+        node,
+        fnCallback = function(n) {
+          callback(n);
+        };
 
     for (i = 0, len = textMenuButtons.length; i < len; i++) {
       node = textMenuButtons[i];
 
-      (function(n) {
-        callback(n);
-      })(node);
+      fnCallback(node);
     }
   }
 
@@ -69,100 +245,198 @@
   }
 
   function reloadMenuState() {
-    var className;
+    var className,
+        focusNode = getFocusNode(),
+        tagClass,
+        reTag;
 
     iterateTextMenuButtons(function(node) {
       className = node.className;
-      var focusNode = getFocusNode();
 
-      switch (true) {
-        case /bold/.test(className):
-          // TODO: This is a funky case where contenteditable will hack the font-weight
-          // instead...need to look out for that as well
-          if (hasParentWithTag(focusNode, "b")) {
-            node.className = "bold active";
+      for (var tag in tagClassMap) {
+        tagClass = tagClassMap[tag];
+        reTag = new RegExp(tagClass);
+
+        if (reTag.test(className)) {
+          if (hasParentWithTag(focusNode, tag)) {
+            node.className = tagClass + " active";
           } else {
-            node.className = "bold";
+            node.className = tagClass;
           }
-          break;
 
-        case /italic/.test(className):
-          if (hasParentWithTag(focusNode, "i")) {
-            node.className = "italic active";
-          } else {
-            node.className = "italic";
-          }
           break;
-
-        case /header1/.test(className):
-          if (hasParentWithTag(focusNode, "h1")) {
-            node.className = "header1 active";
-          } else {
-            node.className = "header1";
-          }
-          break;
-
-        case /header2/.test(className):
-          if (hasParentWithTag(focusNode, "h2")) {
-            node.className = "header2 active";
-          } else {
-            node.className = "header2";
-          }
-          break;
-
-        case /quote/.test(className):
-          if (hasParentWithTag(focusNode, "blockquote")) {
-            node.className = "quote active";
-          } else {
-            node.className = "quote";
-          }
-          break;
-
-        case /url/.test(className):
-          if (hasParentWithTag(focusNode, "a")) {
-            node.className = "url active";
-          } else {
-            node.className = "url";
-          }
-          break;
-
-        default:
-          // no default
+        }
       }
     });
   }
 
+  function preprocessKeyDown(event) {
+    var sel = window.getSelection(),
+        parentParagraph = getParentWithTag(sel.anchorNode, "p"),
+        p,
+        isHr;
+
+    if (event.keyCode === 13 && parentParagraph) {
+      prevSibling = parentParagraph.previousSibling;
+      isHr = prevSibling && prevSibling.nodeName === "HR" &&
+        !parentParagraph.textContent.length;
+
+      // Stop enters from creating another <p> after a <hr> on enter
+      if (isHr) {
+        event.preventDefault();
+      }
+    }
+  }
+
+  function triggerNodeAnalysis(event) {
+    var sel = window.getSelection(),
+        anchorNode,
+        parentParagraph;
+
+    if (event.keyCode === 13) {
+
+      // Enters should replace it's parent <div> with a <p>
+      if (sel.anchorNode.nodeName === "DIV") {
+        toggleFormatBlock("p");
+      }
+
+      parentParagraph = getParentWithTag(sel.anchorNode, "p");
+
+      if (parentParagraph) {
+        insertHorizontalRule(parentParagraph);
+      }
+    }
+  }
+
+  function insertHorizontalRule(parentParagraph) {
+    var prevSibling,
+        prevPrevSibling,
+        hr;
+
+    prevSibling = parentParagraph.previousSibling;
+    prevPrevSibling = prevSibling;
+
+    while (prevPrevSibling) {
+      if (prevPrevSibling.nodeType != Node.TEXT_NODE) {
+        break;
+      }
+
+      prevPrevSibling = prevPrevSibling.previousSibling;
+    }
+
+    if (prevSibling.nodeName === "P" && !prevSibling.textContent.length && prevPrevSibling.nodeName !== "HR") {
+      hr = document.createElement("hr");
+      hr.contentEditable = false;
+      parentParagraph.parentNode.replaceChild(hr, prevSibling);
+    }
+  }
+
+  function getTextProp(el) {
+    var textProp;
+
+    if (el.nodeType === Node.TEXT_NODE) {
+      textProp = "data";
+    } else if (isFirefox) {
+      textProp = "textContent";
+    } else {
+      textProp = "innerText";
+    }
+
+    return textProp;
+  }
+
+  function insertListOnSelection(sel, textProp, listType) {
+    var execListCommand = listType === "ol" ? "insertOrderedList" : "insertUnorderedList",
+        nodeOffset = listType === "ol" ? 3 : 2;
+
+    document.execCommand(execListCommand);
+    sel.anchorNode[textProp] = sel.anchorNode[textProp].substring(nodeOffset);
+
+    return getParentWithTag(sel.anchorNode, listType);
+  }
+
+  function triggerTextParse(event) {
+    var sel = window.getSelection(),
+        textProp,
+        subject,
+        insertedNode,
+        unwrap,
+        node,
+        parent,
+        range;
+
+    // FF will return sel.anchorNode to be the parentNode when the triggered keyCode is 13
+    if (!sel.isCollapsed || !sel.anchorNode || sel.anchorNode.nodeName === "ARTICLE") {
+      return;
+    }
+
+    textProp = getTextProp(sel.anchorNode);
+    subject = sel.anchorNode[textProp];
+
+    if (subject.match(/^[-*]\s/) && sel.anchorNode.parentNode.nodeName !== "LI") {
+      insertedNode = insertListOnSelection(sel, textProp, "ul");
+    }
+
+    if (subject.match(/^1\.\s/) && sel.anchorNode.parentNode.nodeName !== "LI") {
+      insertedNode = insertListOnSelection(sel, textProp, "ol");
+    }
+
+    unwrap = insertedNode &&
+            ["ul", "ol"].indexOf(insertedNode.nodeName.toLocaleLowerCase()) >= 0 &&
+            ["p", "div"].indexOf(insertedNode.parentNode.nodeName.toLocaleLowerCase()) >= 0;
+
+    if (unwrap) {
+      node = sel.anchorNode;
+      parent = insertedNode.parentNode;
+      parent.parentNode.insertBefore(insertedNode, parent);
+      parent.parentNode.removeChild(parent);
+      moveCursorToBeginningOfSelection(sel, node);
+    }
+  }
+
+  function moveCursorToBeginningOfSelection(selection, node) {
+    range = document.createRange();
+    range.setStart(node, 0);
+    range.setEnd(node, 0);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
   function triggerTextStyling(node) {
-    var className = node.className;
+    var className = node.className,
+        sel = window.getSelection(),
+        selNode = sel.anchorNode,
+        tagClass,
+        reTag;
 
-    switch (true) {
-      case /bold/.test(className):
-        document.execCommand("bold", false);
-        break;
+    for (var tag in tagClassMap) {
+      tagClass = tagClassMap[tag];
+      reTag = new RegExp(tagClass);
 
-      case /italic/.test(className):
-        document.execCommand("italic", false);
-        break;
+      if (reTag.test(className)) {
+        switch(tag) {
+          case "b":
+            if (selNode && !hasParentWithTag(selNode, "h1") && !hasParentWithTag(selNode, "h2")) {
+              document.execCommand(tagClass, false);
+            }
+            return;
+          case "i":
+            document.execCommand(tagClass, false);
+            return;
 
-      case /header1/.test(className):
-        toggleFormatBlock("h1");
-        break;
+          case "h1":
+          case "h2":
+          case "h3":
+          case "blockquote":
+            toggleFormatBlock(tag);
+            return;
 
-      case /header2/.test(className):
-        toggleFormatBlock("h2");
-        break;
-
-      case /quote/.test(className):
-        toggleFormatBlock("blockquote");
-        break;
-
-      case /url/.test(className):
-        toggleUrlInput();
-        optionsNode.className = "options url-mode";
-        break;
-
-      default:
-        // no default
+          case "a":
+            toggleUrlInput();
+            optionsNode.className = "options url-mode";
+            return;
+        }
+      }
     }
 
     triggerTextSelection();
@@ -180,7 +454,7 @@
       return false;
     }
 
-    if (!url.match("^(http|https)://")) {
+    if (!url.match("^(http://|https://|mailto:)")) {
       url = "http://" + url;
     }
 
@@ -223,53 +497,80 @@
     }, 150);
   }
 
-  function hasParentWithTag(node, nodeType) {
-    while (node.parentNode) {
-      if (node.nodeName.toLowerCase() === nodeType) {
-        return true;
-      }
-      node = node.parentNode;
+  function getParent(node, condition, returnCallback) {
+    if (node === null) {
+      return;
     }
 
-    return false;
+    while (node.parentNode) {
+      if (condition(node)) {
+        return returnCallback(node);
+      }
+
+      node = node.parentNode;
+    }
+  }
+
+  function getParentWithTag(node, nodeType) {
+    var checkNodeType = function(node) { return node.nodeName.toLowerCase() === nodeType; },
+        returnNode = function(node) { return node; };
+
+    return getParent(node, checkNodeType, returnNode);
+  }
+
+  function hasParentWithTag(node, nodeType) {
+    return !!getParentWithTag(node, nodeType);
   }
 
   function getParentHref(node) {
-    while (node.parentNode) {
-      if (typeof node.href !== "undefined") {
-        return node.href;
-      }
+    var checkHref = function(node) { return typeof node.href !== "undefined"; },
+        returnHref = function(node) { return node.href; };
 
-      node = node.parentNode;
-    }
+    return getParent(node, checkHref, returnHref);
   }
 
-  function triggerTextSelection() {
-      var selectedText = root.getSelection(),
-          range,
-          clientRectBounds;
+  function triggerTextSelection(e) {
+    var selectedText = root.getSelection(),
+        range,
+        clientRectBounds,
+        target = e.target || e.srcElement;
 
-      // The selected text is collapsed, push the menu out of the way
-      if (selectedText.isCollapsed) {
-        setTextMenuPosition(-999, -999);
-      } else {
-        range = selectedText.getRangeAt(0);
-        clientRectBounds = range.getBoundingClientRect();
+    // The selected text is not editable
+    if (!target.isContentEditable) {
+      reloadMenuState();
+      return;
+    }
 
-        // Every time we show the menu, reload the state
-        reloadMenuState();
-        setTextMenuPosition(
-          clientRectBounds.top - 5 + root.pageYOffset,
-          (clientRectBounds.left + clientRectBounds.right) / 2
-        );
-      }
+    // The selected text is collapsed, push the menu out of the way
+    if (selectedText.isCollapsed) {
+      setTextMenuPosition(EDGE, EDGE);
+      textMenu.className = "text-menu hide";
+    } else {
+      range = selectedText.getRangeAt(0);
+      clientRectBounds = range.getBoundingClientRect();
 
+      // Every time we show the menu, reload the state
+      reloadMenuState();
+      setTextMenuPosition(
+        clientRectBounds.top - 5 + root.pageYOffset,
+        (clientRectBounds.left + clientRectBounds.right) / 2
+      );
+    }
   }
 
   function setTextMenuPosition(top, left) {
     textMenu.style.top = top + "px";
     textMenu.style.left = left + "px";
+
+    if (options.animate) {
+      if (top === EDGE) {
+        textMenu.className = "text-menu hide";
+      } else {
+        textMenu.className = "text-menu active";
+      }
+    }
   }
 
   root.grande = grande;
+
 }).call(this);

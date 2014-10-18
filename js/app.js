@@ -9,12 +9,14 @@ $(document).ready(function(){
 	});
 
 	//add the img to the space
-	$(document).on('click', '.add_img', function(){
+	$(document).on('click', '.add_img', function(e){
+		e.preventDefault();
 		$(this).parent().html("<div class='img_container'><div class='img_layout'><a class='img_vert' href='#'>||</a>&nbsp;<a class='img_horiz' href='#'>=</a></div><img src='img/image.jpg'/></div>");
 		return false;
 	});
 
-	$(document).on('click', '.img_vert', function(){
+	$(document).on('click', '.img_vert', function(e){
+		e.preventDefault();
 		var h = $(this).closest('.img_container').height();
 		$(this).closest('.img_container').css({
 			"width": "50%",
@@ -23,12 +25,9 @@ $(document).ready(function(){
 		$(this).closest('.space').append("<div class='img_container' style='width:50%; float:left;'><div class='img_layout'><a class='img_vert' href='#'>||</a>&nbsp;<a class='img_horiz' href='#'>=</a></div><img src='img/image.jpg'/></div>");
 	});
 
-	$(document).on('click', '.img_horiz', function(){
-		var h = $(this).closest('.img_container').height();
-		$(this).closest('.img_container').css({
-			"height": h/2
-		});
-		$(this).closest('.space').append("<div class='img_container' style='height:"+h/2+"px; float: left;'><div class='img_layout'></div><img src='img/image.jpg'/></div>");
+	$(document).on('click', '.img_horiz', function(e){
+		e.preventDefault();
+		$(this).closest('.space').append("<div class='img_container' style='width:100%; float:left;'><div class='img_layout'><a class='img_vert' href='#'>||</a>&nbsp;<a class='img_horiz' href='#'>=</a></div><img src='img/image.jpg'/></div>");
 	});
 
 });
